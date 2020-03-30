@@ -8,21 +8,6 @@ from PIL import Image
 import re
 import argparse
 
-parser = argparse.ArgumentParser(description="Face++ dataset")
-parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
-parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
-parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
-opt = parser.parse_args()
-
-ALL_DATA_ROOTS = {
-    "Original" : "data/original_sequences/",
-    "Deepfakes":"data/manipulated_sequences/Deepfakes/",
-    "Face2Face":"data/manipulated_sequences/Face2Face/",
-    "FaceSwap":"data/manipulated_sequences/FaceSwap/",
-    "NeuralTextures":"data/manipulated_sequences/NeuralTextures/"
-  }
-
-# ["data/manipulated_sequences/Deepfakes/c23/crop_images", "data/original_sequences/c23/crop_images"]
 class Face(Dataset):
     def __init__(self, roots='', resize=299, mode='train', filename="All_c40_F"):
         super(Face, self).__init__()
@@ -48,13 +33,13 @@ class Face(Dataset):
                 class_name.sort()
                 for step, face_imgaes in enumerate(class_name):
                     if self.mode == "train":
-                        if step < 1000*0.7:
+                        if step < 1000 * 0.7:
                             class_images += glob.glob(os.path.join(face_class, face_imgaes, '*.png'))
                     elif self.mode == "val":
-                        if step >= 1000*0.7 and step < 1000*0.85:
+                        if step >= 1000 * 0.7 and step < 1000 * 0.85:
                             class_images += glob.glob(os.path.join(face_class, face_imgaes, '*.png'))
                     elif self.mode == "test":
-                        if step >= 1000*0.85:
+                        if step >= 1000 * 0.85:
                             class_images += glob.glob(os.path.join(face_class, face_imgaes, '*.png'))
                 images += class_images
 
@@ -86,6 +71,7 @@ class Face(Dataset):
 
         tf = transforms.Compose([
             lambda x: Image.open(x).convert('RGB'),
+            transforms.Resize((299, 299)),
             transforms.ToTensor(),
         ])
 
@@ -95,19 +81,32 @@ class Face(Dataset):
         return img, label
 
 
-if __name__ == '__main__':
+# python dataset.py --data Deepfakes --compression c40 --mode C
+def main():
+    parser = argparse.ArgumentParser(description="Face++ dataset")
+    parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
+    parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
+    parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
+    opt = parser.parse_args()
 
-    roots = []
+    ALL_DATA_ROOTS = {
+        "Original" : "data/original_sequences/",
+        "Deepfakes":"data/manipulated_sequences/Deepfakes/",
+        "Face2Face":"data/manipulated_sequences/Face2Face/",
+        "FaceSwap":"data/manipulated_sequences/FaceSwap/",
+        "NeuralTextures":"data/manipulated_sequences/NeuralTextures/"
+      }
+
+
+    roots = []    # ["data/manipulated_sequences/Deepfakes/c23/crop_images", "data/original_sequences/c23/crop_images"]
     filename = opt.data + "_" + opt.compression + "_" + opt.mode
 
-
-    for its in  ALL_DATA_ROOTS.keys():
-        ALL_DATA_ROOTS[its] =  ALL_DATA_ROOTS[its] + opt.compression
+    for its in ALL_DATA_ROOTS.keys():
+        ALL_DATA_ROOTS[its] = ALL_DATA_ROOTS[its] + opt.compression
         if opt.mode == "F":
             ALL_DATA_ROOTS[its] = ALL_DATA_ROOTS[its] + "/full_images"
         else:
             ALL_DATA_ROOTS[its] = ALL_DATA_ROOTS[its] + "/crop_images"
-
 
     if opt.data == "All":
         for its in ALL_DATA_ROOTS.values():
@@ -122,7 +121,12 @@ if __name__ == '__main__':
 
     # train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=8)
     # val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=8)
-    #
+
     # for step, (x, y) in enumerate(train_loader):
     #     print(step, x.shape)
     # train_loader = DataLoader(face_train, batch_size=64, shuffle=True, num_workers=16, pin_memory=True)
+
+
+if __name__ == '__main__':
+    main()
+
