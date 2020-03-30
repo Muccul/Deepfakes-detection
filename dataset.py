@@ -1,33 +1,46 @@
 import torch
 import visdom
-import csv, random
+import csv
 import os, glob
-from torch import nn, optim
-from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import re
+import argparse
+
+parser = argparse.ArgumentParser(description="Face++ dataset")
+parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
+parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
+parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
+opt = parser.parse_args()
+
+ALL_DATA_ROOTS = {
+    "Original" : "data/original_sequences/",
+    "Deepfakes":"data/manipulated_sequences/Deepfakes/",
+    "Face2Face":"data/manipulated_sequences/Face2Face/",
+    "FaceSwap":"data/manipulated_sequences/FaceSwap/",
+    "NeuralTextures":"data/manipulated_sequences/NeuralTextures/"
+  }
 
 # ["data/manipulated_sequences/Deepfakes/c23/crop_images", "data/original_sequences/c23/crop_images"]
 class Face(Dataset):
-    def __init__(self, roots, resize=299, mode='train', filename="ori"):
+    def __init__(self, roots='', resize=299, mode='train', filename="All_c40_F"):
         super(Face, self).__init__()
 
         self.roots = roots
         self.resize = resize
         self.mode = mode
-
         self.name2label = {}
+        filename = filename + "_" + mode
+
         for step, name in enumerate(roots):
             self.name2label[name.split("/")[-3]] = step
 
-        self.images, self.labels = self.load_csv('face_' + filename + "_" +  mode + '.csv')
-
+        self.images, self.labels = self.load_csv(filename + '.csv')
 
     def load_csv(self, filename):
         print("load csv：", filename)
-        if not os.path.exists(os.path.join('./', filename)):
+        if not os.path.exists(os.path.join('./data/csv', filename)):
             images = []
             for face_class in self.roots:
                 class_images = []
@@ -45,7 +58,7 @@ class Face(Dataset):
                             class_images += glob.glob(os.path.join(face_class, face_imgaes, '*.png'))
                 images += class_images
 
-            with open(os.path.join('./', filename), mode='w', newline='') as f:
+            with open(os.path.join('./data/csv', filename), mode='w', newline='') as f:
                 writer = csv.writer(f)
                 for img in images:
                     name = re.split(r'[/\\]', img)[-5]
@@ -54,7 +67,7 @@ class Face(Dataset):
                 print('writen into csv file:', filename)
 
         images, labels = [], []
-        with open(os.path.join('./', filename)) as f:
+        with open(os.path.join('./data/csv', filename)) as f:
             reader = csv.reader(f)
             for row in reader:
                 img, label = row
@@ -83,13 +96,33 @@ class Face(Dataset):
 
 
 if __name__ == '__main__':
-    roots = ["data/manipulated_sequences/Deepfakes/c23/crop_images", "data/original_sequences/c23/crop_images"]
-    train_dataset = Face(roots=roots, mode='train', filename="Deepfakes")
-    val_dataset = Face(roots=roots, mode='val', filename="Deepfakes")
 
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=8)
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=8)
+    roots = []
+    filename = opt.data + "_" + opt.compression + "_" + opt.mode
 
-    for step, (x, y) in enumerate(train_loader):
-        print(step, x.shape)
+
+    for its in  ALL_DATA_ROOTS.keys():
+        ALL_DATA_ROOTS[its] =  ALL_DATA_ROOTS[its] + opt.compression
+        if opt.mode == "F":
+            ALL_DATA_ROOTS[its] = ALL_DATA_ROOTS[its] + "/full_images"
+        else:
+            ALL_DATA_ROOTS[its] = ALL_DATA_ROOTS[its] + "/crop_images"
+
+
+    if opt.data == "All":
+        for its in ALL_DATA_ROOTS.values():
+            roots.append(its)
+    else:
+        roots.append(ALL_DATA_ROOTS["Original"])
+        roots.append(ALL_DATA_ROOTS[opt.data])
+
+    train_dataset = Face(roots=roots, mode='train', filename=filename)
+    val_dataset = Face(roots=roots, mode='val', filename=filename)
+    test_dataset = Face(roots=roots, mode='test', filename=filename)
+
+    # train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=8)
+    # val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=8)
+    #
+    # for step, (x, y) in enumerate(train_loader):
+    #     print(step, x.shape)
     # train_loader = DataLoader(face_train, batch_size=64, shuffle=True, num_workers=16, pin_memory=True)

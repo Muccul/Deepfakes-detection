@@ -3,14 +3,14 @@ import os
 import argparse
 from tqdm import tqdm
 
-#python video2img.py --data Original --mode F
+#python video2img.py --data Original --compression c40 --mode F
 parser = argparse.ArgumentParser(description="video2img")
 parser.add_argument("--frame_num", type=int, default=20, help="frame number")
 parser.add_argument("--frame_val", type=int, default=6, help="frame interval number")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "Original"])
+parser.add_argument("--compression", type=str, default="c23", choices=["c23", "c40"])
 parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
 opt = parser.parse_args()
-
 
 
 def get_box_edge(full_img):
@@ -96,8 +96,8 @@ def BGR2RGR(img):
 
 
 def video2full_img():
-    video_root = os.path.join("data", opt.data, "c23/videos")
-    out_root = os.path.join("data", opt.data, "c23/full_images")
+    video_root = os.path.join("data", opt.data, opt.compression+"/videos")
+    out_root = os.path.join("data", opt.data, opt.compression+"/full_images")
     os.makedirs(out_root, exist_ok=True)
 
     video_files = os.listdir(video_root)
@@ -119,9 +119,9 @@ def video2full_img():
             num += 1
 
 def video2crop_img():
-    video_root = os.path.join("data", opt.data, "c23/videos")
+    video_root = os.path.join("data", opt.data, opt.compression+"/videos")
     mask_root = os.path.join("data", "manipulated_sequences/Deepfakes", "masks/videos")
-    out_root = os.path.join("data", opt.data, "c23/crop_images")
+    out_root = os.path.join("data", opt.data, opt.compression+"/crop_images")
     os.makedirs(out_root, exist_ok=True)
 
     video_files = os.listdir(video_root)

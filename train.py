@@ -7,11 +7,15 @@ import visdom
 from model.xception import net
 from dataset import Face
 
-#  python train_gray.py -c 0  --noiseL 25
+#  python train.py --data Deepfakes --compression c40 --mode C --checkpoint 0
 parser =argparse.ArgumentParser(description="DFDC Train")
 parser.add_argument("--batchsize", type=int, default=64, help="Training batch size")
 parser.add_argument("--epochs", type=int,  default=50, help="Number of training epochs")
+parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
+parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
 parser.add_argument("--checkpoint", "-c", type=int, default=0, help="checkpoint of training")
+parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
+
 opt = parser.parse_args()
 device = torch.device("cuda:0")
 
@@ -37,9 +41,10 @@ def main():
     scheduler = optim.lr_scheduler.MultiStepLR(optimier, milestones=[5, 40], gamma=0.1)
     criterion = nn.CrossEntropyLoss()
 
-    roots = ["data/manipulated_sequences/Deepfakes/c23/crop_images", "data/original_sequences/c23/crop_images"]
-    dataset_train = Face(roots=roots, mode='train', filename="Deepfakes")
-    dataset_val = Face(roots=roots, mode='val', filename="Deepfakes")
+
+    filename = opt.data + "_" + opt.compression + "_" + opt.mode
+    dataset_train = Face(mode='train', filename=filename)
+    dataset_val = Face(mode='val', filename=filename)
     loader_train = DataLoader(dataset_train, batch_size=opt.batchsize, shuffle=True, num_workers=8, drop_last=True)
     loader_val = DataLoader(dataset_val, batch_size=opt.batchsize, shuffle=True, num_workers=8, drop_last=True)
 
@@ -49,7 +54,7 @@ def main():
     viz = visdom.Visdom(port=13680)
     weight_path = "weight"
     if opt.checkpoint != 0:
-        model.load_state_dict(torch.load(os.path.join(weight_path, "model_deepfakes_%d.pth" %(opt.checkpoint))))
+        model.load_state_dict(torch.load(os.path.join(weight_path, "model_%s_%d.pth" %(filename, opt.checkpoint))))
         viz.line([0.2], [dataset_step * opt.checkpoint], win='loss', opts=dict(title='loss'))
         viz.line([0.9], [opt.checkpoint], win='val_acc', opts=dict(title='val_acc'))
         viz.line([0.9], [opt.checkpoint], win='train_acc', opts=dict(title='train_acc'))
@@ -88,9 +93,10 @@ def main():
             print("****************************\nepoch:{} val_acc:{}\n***************************************\n".format(epoch + 1, val_acc))
             viz.line([val_acc], [epoch+1], win='val_acc', update='append')
             viz.line([train_acc_all/((step+1)*opt.batchsize)], [epoch+1], win='train_acc', update='append')
-            torch.save(model.state_dict(), os.path.join(weight_path, "model_deepfakes_%d.pth" %(epoch+1)))
+            torch.save(model.state_dict(), os.path.join(weight_path, "model_%s_%d.pth" %(filename, epoch+1)))
             scheduler.step()
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    print(opt.checkpoint)
