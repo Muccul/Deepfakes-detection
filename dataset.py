@@ -8,6 +8,7 @@ from PIL import Image
 import re
 import argparse
 
+# python dataset.py --data Deepfakes --compression c40 --mode C
 class Face(Dataset):
     def __init__(self, roots='', resize=299, mode='train', filename="All_c40_F"):
         super(Face, self).__init__()
@@ -81,7 +82,7 @@ class Face(Dataset):
         return img, label
 
 
-# python dataset.py --data Deepfakes --compression c40 --mode C
+
 def main():
     parser = argparse.ArgumentParser(description="Face++ dataset")
     parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")

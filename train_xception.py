@@ -10,7 +10,7 @@ from dataset import Face
 #  python train_xception.py --data Deepfakes --compression c40 --mode C --checkpoint 0
 parser =argparse.ArgumentParser(description="DFDC Train")
 parser.add_argument("--batchsize", type=int, default=64, help="Training batch size")
-parser.add_argument("--epochs", type=int,  default=50, help="Number of training epochs")
+parser.add_argument("--epochs", type=int,  default=10, help="Number of training epochs")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
 parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
 parser.add_argument("--checkpoint", "-c", type=int, default=0, help="checkpoint of training")
@@ -93,6 +93,8 @@ def main():
             viz.line([val_acc], [epoch+1], win='val_acc', update='append')
             viz.line([train_acc_all/((step+1)*opt.batchsize)], [epoch+1], win='train_acc', update='append')
             torch.save(model.state_dict(), os.path.join(weight_path, "model_%s_%d.pth" %(filename, epoch+1)))
+            with open("log/%s.txt" %(filename), "a+") as f:
+                f.write("epoch%d:   train_acc：%.6f,   val_acc：%.6f \n" % (epoch+1, train_acc_all/((step+1)*opt.batchsize), val_acc))
             scheduler.step()
 
 
