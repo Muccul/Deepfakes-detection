@@ -16,7 +16,7 @@ class Flatten(nn.Module):
     def forward(self, x):
         return self.logits(x)
 
-def net():
+def net(num_class = 2):
     state_dict = torch.load("./weight/xception-b5690688.pth")
     for name, weights in state_dict.items():
         if 'pointwise' in name:
@@ -30,7 +30,7 @@ def net():
     )
     model.fc = nn.Sequential(
         nn.Dropout(0.5),
-        nn.Linear(2048, 2),
+        nn.Linear(2048, num_class),
     )
     return model
 

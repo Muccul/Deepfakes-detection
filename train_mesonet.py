@@ -4,10 +4,10 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn, optim
 import visdom
-from model.xception import net
+from model.MesoInception import MesoInception
 from dataset import Face
 
-#  python train_xception.py --data Deepfakes --compression c40 --mode C --checkpoint 0
+#  python train_mesonet.py --data Deepfakes --compression c23 --mode C --checkpoint 0
 parser =argparse.ArgumentParser(description="DFDC Train")
 parser.add_argument("--batchsize", type=int, default=32, help="Training batch size")
 parser.add_argument("--epochs", type=int,  default=10, help="Number of training epochs")
@@ -18,7 +18,7 @@ parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F
 opt = parser.parse_args()
 
 
-device = torch.device("cuda:2")
+device = torch.device("cuda:3")
 
 def evaluate(model, loader):
     model.eval()
@@ -37,17 +37,17 @@ def evaluate(model, loader):
 def main():
 
     if opt.data == "All":
-        model = net(num_class=5)
+        model = MesoInception(out_channel=5)
     else:
-        model = net(num_class=2)
-    model = torch.nn.DataParallel(model, device_ids=[2, 3]).to(device)
+        model = MesoInception(out_channel=2)
+    model = torch.nn.DataParallel(model, device_ids=[3]).to(device)
     optimier = optim.Adam(model.parameters(), lr=5e-4)
     scheduler = optim.lr_scheduler.MultiStepLR(optimier, milestones=[5, 40], gamma=0.1)
     criterion = nn.CrossEntropyLoss()
 
     filename = opt.data + "_" + opt.compression + "_" + opt.mode
-    dataset_train = Face(mode='train', filename=filename)
-    dataset_val = Face(mode='val', filename=filename)
+    dataset_train = Face(mode='train', filename=filename, resize=256)
+    dataset_val = Face(mode='val', filename=filename, resize=256)
     loader_train = DataLoader(dataset_train, batch_size=opt.batchsize, shuffle=True, num_workers=8, drop_last=True)
     loader_val = DataLoader(dataset_val, batch_size=opt.batchsize, shuffle=True, num_workers=8, drop_last=True)
 
@@ -56,7 +56,7 @@ def main():
     viz = visdom.Visdom(port=13680)
     weight_path = "weight"
     if opt.checkpoint != 0:
-        model.load_state_dict(torch.load(os.path.join(weight_path, "model_%s_%d.pth" %(filename, opt.checkpoint))))
+        model.load_state_dict(torch.load(os.path.join(weight_path, "model_Mesonet_%s_%d.pth" %(filename, opt.checkpoint))))
         viz.line([0.2], [dataset_step * opt.checkpoint], win='loss', opts=dict(title='loss'))
         viz.line([0.9], [opt.checkpoint], win='val_acc', opts=dict(title='val_acc'))
         viz.line([0.9], [opt.checkpoint], win='train_acc', opts=dict(title='train_acc'))
@@ -95,8 +95,8 @@ def main():
             print("****************************\nepoch:{} val_acc:{}\n***************************************\n".format(epoch + 1, val_acc))
             viz.line([val_acc], [epoch+1], win='val_acc', update='append')
             viz.line([train_acc_all/((step+1)*opt.batchsize)], [epoch+1], win='train_acc', update='append')
-            torch.save(model.state_dict(), os.path.join(weight_path, "model_%s_%d.pth" %(filename, epoch+1)))
-            with open("log/%s.txt" %(filename), "a+") as f:
+            torch.save(model.state_dict(), os.path.join(weight_path, "model_Mesonet_%s_%d.pth" %(filename, epoch+1)))
+            with open("log/Mesonet_%s.txt" %(filename), "a+") as f:
                 f.write("epoch%d:   train_acc：%.6f,   val_acc：%.6f \n" % (epoch+1, train_acc_all/((step+1)*opt.batchsize), val_acc))
             scheduler.step()
 

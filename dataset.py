@@ -10,7 +10,7 @@ import argparse
 
 # python dataset.py --data Deepfakes --compression c40 --mode C
 class Face(Dataset):
-    def __init__(self, roots='', resize=299, mode='train', filename="All_c40_F"):
+    def __init__(self, roots='', resize=299, mode='train', filename="All_c40_C"):
         super(Face, self).__init__()
 
         self.roots = roots
@@ -72,7 +72,7 @@ class Face(Dataset):
 
         tf = transforms.Compose([
             lambda x: Image.open(x).convert('RGB'),
-            transforms.Resize((299, 299)),
+            transforms.Resize((self.resize, self.resize)),
             transforms.ToTensor(),
         ])
 
