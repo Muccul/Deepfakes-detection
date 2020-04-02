@@ -18,7 +18,7 @@ parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F
 opt = parser.parse_args()
 
 
-device = torch.device("cuda:2")
+device = torch.device("cuda:0")
 
 def evaluate(model, loader):
     model.eval()
@@ -40,7 +40,7 @@ def main():
         model = net(num_class=5)
     else:
         model = net(num_class=2)
-    model = torch.nn.DataParallel(model, device_ids=[2, 3]).to(device)
+    model = torch.nn.DataParallel(model, device_ids=[0, 1]).to(device)
     optimier = optim.Adam(model.parameters(), lr=5e-4)
     scheduler = optim.lr_scheduler.MultiStepLR(optimier, milestones=[5, 40], gamma=0.1)
     criterion = nn.CrossEntropyLoss()
@@ -49,7 +49,7 @@ def main():
     dataset_train = Face(mode='train', filename=filename)
     dataset_val = Face(mode='val', filename=filename)
     loader_train = DataLoader(dataset_train, batch_size=opt.batchsize, shuffle=True, num_workers=8, drop_last=True)
-    loader_val = DataLoader(dataset_val, batch_size=opt.batchsize, shuffle=True, num_workers=8, drop_last=True)
+    loader_val = DataLoader(dataset_val, batch_size=opt.batchsize, num_workers=8)
 
     dataset_step = len(loader_train.dataset)/opt.batchsize
 
