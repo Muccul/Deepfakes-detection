@@ -8,7 +8,7 @@ from PIL import Image
 import re
 import argparse
 
-# python dataset.py --data Deepfakes --compression c40 --mode C
+# python dataset_tsm.py --data Face2Face --compression c40 --mode C
 class Face(Dataset):
     def __init__(self, roots='', resize=299, mode='train', filename="All_c40_C"):
         super(Face, self).__init__()
@@ -58,11 +58,30 @@ class Face(Dataset):
         images, labels = [], []
         with open(os.path.join('./data/csv', filename)) as f:
             reader = csv.reader(f)
+            segment_imgs, segment_labs = [], []
+            fg = 0
             for row in reader:
                 img, label = row
                 label = int(label)
-                images.append(img)
-                labels.append(label)
+                if fg <5:
+                    segment_imgs.append(img)
+                    segment_labs.append(label)
+                else:
+                    images.append(segment_imgs)
+                    labels.append(segment_labs)
+                    segment_imgs, segment_labs = [], []
+                    segment_imgs.append(img)
+                    segment_labs.append(label)
+                    fg = 0
+                fg += 1
+            images.append(segment_imgs)
+            labels.append(segment_labs)
+
+        # with open(os.path.join('./data/csv', 'test'+filename), mode='w', newline='') as f:
+        #     writer = csv.writer(f)
+        #     for i in range(len(images)):
+        #         writer.writerow([images[i], labels[i]])
+        #     print('writen into csv file:', filename)
 
         assert len(images) == len(labels)
         return images, labels
@@ -71,18 +90,27 @@ class Face(Dataset):
         return len(self.images)
 
     def __getitem__(self, idx):
-        img, label = self.images[idx], self.labels[idx]
+
+
+        imgs, labels = self.images[idx], self.labels[idx]
 
         tf = transforms.Compose([
             lambda x: Image.open(x).convert('RGB'),
             transforms.Resize((self.resize, self.resize)),
             transforms.ToTensor(),
         ])
+        for i in range(len(imgs)):
+            imgs[i] = tf(imgs[i])
+            labels[i] = torch.tensor(labels[i])
 
-        img = tf(img)
-        label = torch.tensor(label)
+        imgs_new = torch.rand(imgs[0].size())
+        imgs_new = torch.unsqueeze(imgs_new, dim=0).repeat(len(imgs), 1, 1, 1)
+        for i in range(len(imgs)):
+            imgs_new[i] = imgs[i]
 
-        return img, label
+        # label = torch.tensor(labels[0])
+
+        return imgs_new, labels[0]
 
 
 
@@ -123,12 +151,20 @@ def main():
     val_dataset = Face(roots=roots, mode='val', filename=filename)
     test_dataset = Face(roots=roots, mode='test', filename=filename)
 
-    # train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=8)
-    # val_loader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=8)
 
-    # for step, (x, y) in enumerate(train_loader):
-    #     print(step, x.shape)
-    # train_loader = DataLoader(face_train, batch_size=64, shuffle=True, num_workers=16, pin_memory=True)
+    import visdom
+    viz = visdom.Visdom()
+    loader_train = DataLoader(val_dataset, batch_size=16, shuffle=True, num_workers=8)
+    for i in range(2):
+        print(i)
+        for step, (x, y) in enumerate(loader_train):
+            viz.images(x[0], win='imgs', nrow=5)
+            viz.images(x[1], win='imgs1', nrow=5)
+            viz.images(x[2], win='imgs2', nrow=5)
+            print(step, x.shape, y.shape)
+
+
+
 
 
 if __name__ == '__main__':
