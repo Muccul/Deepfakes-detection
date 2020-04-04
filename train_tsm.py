@@ -10,7 +10,7 @@ from model.tsm import TSM
 #  python train_tsm.py --data Face2Face --compression c40 --mode C --checkpoint 0
 parser =argparse.ArgumentParser(description="DFDC_TSM Train")
 parser.add_argument("--batchsize", type=int, default=20, help="Training batch size")
-parser.add_argument("--epochs", type=int,  default=10, help="Number of training epochs")
+parser.add_argument("--epochs", type=int,  default=12, help="Number of training epochs")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
 parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
 parser.add_argument("--checkpoint", "-c", type=int, default=0, help="checkpoint of training")

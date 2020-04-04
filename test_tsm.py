@@ -6,7 +6,7 @@ from model.tsm import TSM
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# python test_tsm.py --data Deepfakes --compression c23 --mode C  --model xception  -c 10
+# python test_tsm.py --data Deepfakes --compression c23 --mode C -c 10
 parser =argparse.ArgumentParser(description="Face++ TSM Test")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
 parser.add_argument("--batchsize", type=int, default=32, help="Training batch size")
@@ -107,15 +107,16 @@ def main():
                 correct_0, total_0, correct_0 / total_0, correct_1, total_1, correct_1 / total_1, correct_2, total_2,
                 correct_2 / total_2, correct_3, total_3, correct_3 / total_3, correct_4, total_4, correct_4 / total_4,
                 TP, TN, FP, FN, (TP+FN)/(TP+TN+FP+FN)))
-        TP, TN, FP, FN, correct_0, correct_1, correct_2, correct_3, correct_4, total_0, total_1, total_2, total_3, total_4 = evaluate_all(model, loader_test)
-        print("model_%s_%d test:\nOri: %d/%d = %.6f\nDeepfakes: %d/%d = %.6f\nFace2Face: %d/%d = %.6f\nFaceSwap: %d/%d = %.6f\nNeuralTextures: %d/%d = %.6f\nTP:%d, TN:%d, FP:%d, FN:%d\n acc:%.6f" % (
-                filename, opt.checkpoint,
-                correct_0, total_0, correct_0 / total_0, correct_1, total_1, correct_1 / total_1, correct_2, total_2,
-                correct_2 / total_2, correct_3, total_3, correct_3 / total_3, correct_4, total_4, correct_4 / total_4,
-                TP, TN, FP, FN, (TP + FN) / (TP + TN + FP + FN)))
+        # TP, TN, FP, FN, correct_0, correct_1, correct_2, correct_3, correct_4, total_0, total_1, total_2, total_3, total_4 = evaluate_all(model, loader_test)
+        # print("model_%s_%d test:\nOri: %d/%d = %.6f\nDeepfakes: %d/%d = %.6f\nFace2Face: %d/%d = %.6f\nFaceSwap: %d/%d = %.6f\nNeuralTextures: %d/%d = %.6f\nTP:%d, TN:%d, FP:%d, FN:%d\n acc:%.6f" % (
+        #         filename, opt.checkpoint,
+        #         correct_0, total_0, correct_0 / total_0, correct_1, total_1, correct_1 / total_1, correct_2, total_2,
+        #         correct_2 / total_2, correct_3, total_3, correct_3 / total_3, correct_4, total_4, correct_4 / total_4,
+        #         TP, TN, FP, FN, (TP + FN) / (TP + TN + FP + FN)))
     else:
         val_acc = evaluate(model, loader_val)
-        val_test = evaluate(model, loader_test)
+        # val_test = evaluate(model, loader_test)
+        val_test = 100
         print("model_%s_%d：   val_acc：%.6f     test_acc：%.6f" % (filename, opt.checkpoint, val_acc, val_test))
 
 
