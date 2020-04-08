@@ -6,7 +6,7 @@ from model.tsm import TSM
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# python test_tsm.py --data Deepfakes --compression c23 --mode C -c 10
+# python test_tsm.py --data NeuralTextures --compression c40 --mode C -c 8
 parser =argparse.ArgumentParser(description="Face++ TSM Test")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
 parser.add_argument("--batchsize", type=int, default=32, help="Training batch size")
@@ -89,7 +89,7 @@ def main():
     else:
         model = TSM(num_classes=2)
 
-    model = torch.nn.DataParallel(model, device_ids=[0, 1]).to(device)
+    model = torch.nn.DataParallel(model, device_ids=[0]).to(device)
 
     model.load_state_dict(torch.load(os.path.join(weight_path, "tsm_model_%s_%d.pth" %(filename, opt.checkpoint)), map_location=device))
 
