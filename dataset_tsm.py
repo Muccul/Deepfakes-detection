@@ -80,12 +80,6 @@ class Face(Dataset):
             images.append(segment_imgs)
             labels.append(segment_labs)
 
-        # with open(os.path.join('./data/csv', 'test'+filename), mode='w', newline='') as f:
-        #     writer = csv.writer(f)
-        #     for i in range(len(images)):
-        #         writer.writerow([images[i], labels[i]])
-        #     print('writen into csv file:', filename)
-
         assert len(images) == len(labels)
         return images, labels
 
