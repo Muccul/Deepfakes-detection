@@ -7,7 +7,7 @@ from model.MesoInception import MesoInception
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# python test.py --data Deepfakes --compression c23 --mode C  --model xception  -c 10
+# python test_img.py --data Deepfakes --compression c23 --mode C  --model xception  -c 10
 parser =argparse.ArgumentParser(description="Face++ Test")
 parser.add_argument("--model", type=str, default="xception", choices=["xception", "mesonet"], help="test model")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
@@ -29,6 +29,7 @@ def evaluate(model, loader):
         x, y = x.to(device), y.to(device)
         with torch.no_grad():
             logits = model(x)
+            print('ok:', logits)
             pred = logits.argmax(dim=1)
         correct += torch.eq(pred, y).sum().float().item()
     return correct / total
@@ -95,18 +96,16 @@ def main():
         else:
             model = MesoInception(out_channel=2)
 
-    model = torch.nn.DataParallel(model, device_ids=[0, 1]).to(device)
-    if opt.model == "xception":
-         # model.load_state_dict(torch.load(os.path.join(weight_path, "model_%s_%d.pth" % (filename, opt.checkpoint)), map_location=device))
-         model.load_state_dict(torch.load(os.path.join(weight_path, "model_%s_%d.pth" % (filename, opt.checkpoint)), map_location=device))
-
-    else:
-        model.load_state_dict(torch.load(os.path.join(weight_path, "model_Mesonet_%s_%d.pth" % (filename, opt.checkpoint)), map_location=device))
+    model = torch.nn.DataParallel(model, device_ids=[0]).to(device)
+    model.load_state_dict(
+        torch.load(os.path.join(weight_path, "model_Mesonet_All_c23_C_10.pth"), map_location=device))
+    # if opt.model == "xception":
+    #      model.load_state_dict(torch.load(os.path.join(weight_path, "model_%s_%d.pth" % (filename, opt.checkpoint)), map_location=device))
+    # else:
+    #     model.load_state_dict(torch.load(os.path.join(weight_path, "model_Mesonet_%s_%d.pth" % (filename, opt.checkpoint)), map_location=device))
 
     dataset_val = Face(mode='val', resize=256 if opt.model=="mesonet" else 299, filename=filename)
-    dataset_test = Face(mode='test', resize=256 if opt.model=="mesonet" else 299, filename=filename)
     loader_val = DataLoader(dataset_val, batch_size=opt.batchsize, num_workers=8)
-    loader_test = DataLoader(dataset_test, batch_size=opt.batchsize, num_workers=8)
 
 
     if opt.data == "All":
@@ -116,16 +115,16 @@ def main():
                 correct_0, total_0, correct_0 / total_0, correct_1, total_1, correct_1 / total_1, correct_2, total_2,
                 correct_2 / total_2, correct_3, total_3, correct_3 / total_3, correct_4, total_4, correct_4 / total_4,
                 TP, TN, FP, FN, (TP+FN)/(TP+TN+FP+FN)))
-        TP, TN, FP, FN, correct_0, correct_1, correct_2, correct_3, correct_4, total_0, total_1, total_2, total_3, total_4 = evaluate_all(model, loader_test)
-        print("model_%s_%d test:\nOri: %d/%d = %.6f\nDeepfakes: %d/%d = %.6f\nFace2Face: %d/%d = %.6f\nFaceSwap: %d/%d = %.6f\nNeuralTextures: %d/%d = %.6f\nTP:%d, TN:%d, FP:%d, FN:%d\n acc:%.6f" % (
-                filename, opt.checkpoint,
-                correct_0, total_0, correct_0 / total_0, correct_1, total_1, correct_1 / total_1, correct_2, total_2,
-                correct_2 / total_2, correct_3, total_3, correct_3 / total_3, correct_4, total_4, correct_4 / total_4,
-                TP, TN, FP, FN, (TP + FN) / (TP + TN + FP + FN)))
+        # TP, TN, FP, FN, correct_0, correct_1, correct_2, correct_3, correct_4, total_0, total_1, total_2, total_3, total_4 = evaluate_all(model, loader_test)
+        # print("model_%s_%d test:\nOri: %d/%d = %.6f\nDeepfakes: %d/%d = %.6f\nFace2Face: %d/%d = %.6f\nFaceSwap: %d/%d = %.6f\nNeuralTextures: %d/%d = %.6f\nTP:%d, TN:%d, FP:%d, FN:%d\n acc:%.6f" % (
+        #         filename, opt.checkpoint,
+        #         correct_0, total_0, correct_0 / total_0, correct_1, total_1, correct_1 / total_1, correct_2, total_2,
+        #         correct_2 / total_2, correct_3, total_3, correct_3 / total_3, correct_4, total_4, correct_4 / total_4,
+        #         TP, TN, FP, FN, (TP + FN) / (TP + TN + FP + FN)))
     else:
         val_acc = evaluate(model, loader_val)
-        val_test = evaluate(model, loader_test)
-        print("model_%s_%d：   val_acc：%.6f     test_acc：%.6f" % (filename, opt.checkpoint, val_acc, val_test))
+        # val_test = evaluate(model, loader_test)
+        print("model_%s_%d：   val_acc：%.6f " % (filename, opt.checkpoint, val_acc))
 
 
 

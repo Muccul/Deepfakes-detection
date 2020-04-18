@@ -12,7 +12,7 @@ parser =argparse.ArgumentParser(description="DFDC Train")
 parser.add_argument("--batchsize", type=int, default=32, help="Training batch size")
 parser.add_argument("--epochs", type=int,  default=10, help="Number of training epochs")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
-parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
+parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40", "mixed"])
 parser.add_argument("--checkpoint", "-c", type=int, default=0, help="checkpoint of training")
 parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
 opt = parser.parse_args()
@@ -53,7 +53,7 @@ def main():
 
     dataset_step = len(loader_train.dataset)/opt.batchsize
 
-    viz = visdom.Visdom(port=13680)
+    viz = visdom.Visdom()
     weight_path = "weight"
     if opt.checkpoint != 0:
         model.load_state_dict(torch.load(os.path.join(weight_path, "model_Mesonet_%s_%d.pth" %(filename, opt.checkpoint))))

@@ -6,6 +6,8 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 import re
+import cv2
+import numpy as np
 import argparse
 
 # python dataset_tsm.py --data Face2Face --compression c40 --mode C
@@ -88,10 +90,7 @@ class Face(Dataset):
 
     def __getitem__(self, idx):
 
-
         imgs, labels = self.images[idx], self.labels[idx]
-
-
 
         if self.modality == "rgb":
             tf = transforms.Compose([
@@ -100,13 +99,13 @@ class Face(Dataset):
                 transforms.ToTensor(),
             ])
 
-            for i in range(len(imgs)):
-                imgs[i] = tf(imgs[i])
-                labels[i] = torch.tensor(labels[i])
-            imgs_new = torch.rand(imgs[0].size())
+            imgs_new = torch.rand(3, self.resize, self.resize)
             imgs_new = torch.unsqueeze(imgs_new, dim=0).repeat(len(imgs), 1, 1, 1)
             for i in range(len(imgs)):
-                imgs_new[i] = imgs[i]
+                imgs_new[i] = tf(imgs[i])
+                labels[i] = torch.tensor(labels[i])
+            return imgs_new, labels[0]
+
         elif self.modality == 'rgbdiff':
             tf = transforms.Compose([
                 lambda x: Image.open(x).convert('RGB'),
@@ -116,16 +115,32 @@ class Face(Dataset):
                                      std=self.input_std)
             ])
 
+            imgs_new = torch.rand(3, self.resize, self.resize)
+            imgs_new = torch.unsqueeze(imgs_new, dim=0).repeat(len(imgs), 1, 1, 1)
             for i in range(len(imgs)):
-                imgs[i] = tf(imgs[i])
+                imgs_new[i] = tf(imgs[i])
                 labels[i] = torch.tensor(labels[i])
-            imgs_new = torch.rand(imgs[0].size())
-            imgs_new = torch.unsqueeze(imgs_new, dim=0).repeat(len(imgs)-1, 1, 1, 1)
-            for i in range(len(imgs)-1):
-                imgs_new[i] = imgs[i+1] - imgs[i]
-        # label = torch.tensor(labels[0])
 
-        return imgs_new, labels[0]
+            for i in range(len(imgs)-1):
+                imgs_new[i] = imgs_new[i+1] - imgs_new[i]
+            return imgs_new[:-1, ], labels[0]
+
+        elif self.modality == 'flow':
+            imgs_new = torch.rand((len(imgs)-1, 2, self.resize, self.resize))
+            pre = cv2.resize(cv2.imread(imgs[0], 0), (self.resize, self.resize))
+            labels[0] = torch.tensor(labels[0])
+            for i in range(1, len(imgs)):
+                current = cv2.resize(cv2.imread(imgs[i], 0), (self.resize, self.resize))
+                flow = cv2.calcOpticalFlowFarneback(pre, current, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+                flow = torch.tensor(flow)
+                flow = flow.permute(2, 0, 1)
+                imgs_new[i-1] = flow
+                pre = cv2.resize(cv2.imread(imgs[i], 0), (self.resize, self.resize))
+            return imgs_new, labels[0]
+
+
+
+
 
 
 
@@ -162,9 +177,11 @@ def main():
         roots.append(ALL_DATA_ROOTS["Original"])
         roots.append(ALL_DATA_ROOTS[opt.data])
 
-    train_dataset = Face(roots=roots, mode='train', filename=filename)
-    val_dataset = Face(roots=roots, mode='val', filename=filename, modality='rgbdiff')
-    test_dataset = Face(roots=roots, mode='test', filename=filename)
+    # train_dataset = Face(roots=roots, mode='train', filename=filename)
+    # val_dataset = Face(roots=roots, mode='val', filename=filename, modality='rgbdiff')
+    # test_dataset = Face(roots=roots, mode='test', filename=filename)
+
+    val_dataset = Face(roots=roots, mode='val', filename=filename, modality='flow')
 
 
     import visdom
@@ -173,9 +190,10 @@ def main():
     for i in range(2):
         print(i)
         for step, (x, y) in enumerate(loader_train):
-            viz.images(x[0], win='imgs', nrow=4)
-            viz.images(x[1], win='imgs1', nrow=4)
-            viz.images(x[2], win='imgs2', nrow=4)
+            viz.images(x[0][0][0], win='imgs1', nrow=1)
+            viz.images(x[0][1][1], win='imgs2', nrow=1)
+            # viz.images(x[1], win='imgs1', nrow=4)
+            # viz.images(x[2], win='imgs2', nrow=4)
             print(step, x.shape, y.shape)
 
 

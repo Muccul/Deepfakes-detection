@@ -9,10 +9,10 @@ from model.tsm import TSM
 
 #  python train_tsm.py --modality rgbdiff --n_segment 4 --data NeuralTextures --compression c40 --mode C --checkpoint 0
 parser =argparse.ArgumentParser(description="DFDC_TSM Train")
-parser.add_argument("--modality", type=str, default='rgb', choices=['rgb', 'rgbdiff'], help='modality')
+parser.add_argument("--modality", type=str, default='rgb', choices=['rgb', 'rgbdiff', 'flow'], help='modality')
 parser.add_argument("--n_segment", type=int, default=5, help="number of segment")
-parser.add_argument("--batchsize", type=int, default=12, help="Training batch size")
-parser.add_argument("--epochs", type=int,  default=12, help="Number of training epochs")
+parser.add_argument("--batchsize", type=int, default=13, help="Training batch size")
+parser.add_argument("--epochs", type=int,  default=18, help="Number of training epochs")
 parser.add_argument("--lr", type=float, default=5e-4, help="learning rate")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
 parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
@@ -42,9 +42,9 @@ def evaluate(model, loader):
 def main():
 
     if opt.data == "All":
-        model = TSM(num_classes=5, n_segment=opt.n_segment)
+        model = TSM(num_classes=5, n_segment=opt.n_segment, input_channel=2 if opt.modality =='flow' else 3)
     else:
-        model = TSM(num_classes=2, n_segment=opt.n_segment)
+        model = TSM(num_classes=2, n_segment=opt.n_segment, input_channel=2 if opt.modality =='flow' else 3)
 
     model = torch.nn.DataParallel(model, device_ids=[0]).to(device)
     for m in model.modules():
@@ -64,7 +64,7 @@ def main():
 
     dataset_step = len(loader_train.dataset)/(opt.batchsize)
 
-
+    # viz = visdom.Visdom(port=13680)
     viz = visdom.Visdom()
     weight_path = "weight"
     if opt.checkpoint != 0:
