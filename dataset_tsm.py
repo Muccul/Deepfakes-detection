@@ -159,7 +159,6 @@ def main():
         "NeuralTextures":"data/manipulated_sequences/NeuralTextures/"
       }
 
-
     roots = []    # ["data/manipulated_sequences/Deepfakes/c23/crop_images", "data/original_sequences/c23/crop_images"]
     filename = opt.data + "_" + opt.compression + "_" + opt.mode
 
