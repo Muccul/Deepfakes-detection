@@ -6,11 +6,13 @@ from model.tsm import TSM
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# python test_tsm.py --data NeuralTextures --compression c40 --mode C -c 8
+# python test_tsm.py --modality rgbdiff --n_segment 4 --data NeuralTextures --compression c40 --mode C -c 8
 parser =argparse.ArgumentParser(description="Face++ TSM Test")
 parser.add_argument("--data", type=str, default="Deepfakes", choices=["Deepfakes", "Face2Face", "FaceSwap", "NeuralTextures", "All"], help="dataset consist of datas")
+parser.add_argument("--modality", type=str, default='rgb', choices=['rgb', 'rgbdiff'], help='modality')
 parser.add_argument("--batchsize", type=int, default=32, help="Training batch size")
 parser.add_argument("--compression", type=str, default="c40", choices=["c23", "c40"])
+parser.add_argument("--n_segment", type=int, default=5, help="number of segment")
 parser.add_argument("--mode", type=str, default="C", choices=["F", "C"], help="F：video2full_img;  C：video2crop_img")
 parser.add_argument("--checkpoint", "-c", type=int, default=0, help="checkpoint of training")
 opt = parser.parse_args()
@@ -85,17 +87,17 @@ def main():
     weight_path = "weight"
     filename = opt.data + "_" + opt.compression + "_" + opt.mode
     if opt.data == "All":
-        model = TSM(num_classes=5)
+        model = TSM(num_classes=5, n_segment=opt.n_segment)
     else:
-        model = TSM(num_classes=2)
+        model = TSM(num_classes=2, n_segment=opt.n_segment)
 
     model = torch.nn.DataParallel(model, device_ids=[0]).to(device)
 
-    model.load_state_dict(torch.load(os.path.join(weight_path, "tsm_model_%s_%d.pth" %(filename, opt.checkpoint)), map_location=device))
+    model.load_state_dict(torch.load(os.path.join(weight_path, "tsm_%s_%s_%d.pth" %(opt.modality, filename, opt.checkpoint)), map_location=device))
 
 
-    dataset_val = Face(mode='val', resize=224, filename=filename)
-    dataset_test = Face(mode='test', resize=224, filename=filename)
+    dataset_val = Face(mode='val', resize=224, filename=filename, modality=opt.modality)
+    dataset_test = Face(mode='test', resize=224, filename=filename, modality=opt.modality)
     loader_val = DataLoader(dataset_val, batch_size=opt.batchsize, num_workers=8)
     loader_test = DataLoader(dataset_test, batch_size=opt.batchsize, num_workers=8)
 
