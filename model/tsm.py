@@ -2,7 +2,6 @@ import torch
 from model.resnet import resnet50
 from model.basic_ops import SegmentConsensus
 from torch import nn
-from model.non_local import make_non_local
 
 class DivSegment(nn.Module):
     def __init__(self, num_classes=2, n_segment=5):
@@ -15,11 +14,11 @@ class DivSegment(nn.Module):
 
 class TSM(nn.Module):
 
-    def __init__(self, num_classes=2, n_segment=5):
+    def __init__(self, input_channel=3, num_classes=2, n_segment=5, pretrained=False):
         super(TSM, self).__init__()
 
 
-        self.model = resnet50(pretrained=True, n_segment=n_segment)
+        self.model = resnet50(pretrained=pretrained, n_segment=n_segment, input_channel=input_channel)
         # make_non_local(self.model, n_segment=5)
         self.model.fc = nn.Sequential(
             nn.Dropout(0.5),
@@ -40,19 +39,7 @@ class TSM(nn.Module):
 
 if __name__ == '__main__':
 
-    import os
-
-
-
-    device = torch.device("cuda:0")
-    weight_path = "weight"
-    model = TSM(num_classes=2, n_segment=5)
-
-    # print(model)
-    model = torch.nn.DataParallel(model, device_ids=[0]).to(device)
-
-    model.load_state_dict(
-        torch.load(os.path.join('../', weight_path, "tsm_model_Face2Face_c23_C_10.pth"), map_location=device))
-    x = torch.rand(5*2, 3, 224, 224).to(device)
+    model = TSM(num_classes=2, n_segment=4, input_channel=2, pretrained=False)
+    x = torch.rand(4, 2, 224, 224)
     print(model(x).shape)
 
