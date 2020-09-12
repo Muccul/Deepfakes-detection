@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 class MesoInception(nn.Module):
 
     def __init__(self, out_channel=2):
